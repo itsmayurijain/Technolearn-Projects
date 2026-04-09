@@ -1,0 +1,490 @@
+Section 4
+
+Q1: Create a Servlet CRUD application for Student data.
+
+Model -- Student.java
+
+
+public class Student {
+       private int id;
+       private String name;
+       private String email;
+       
+       public Student() {
+    	   
+       }
+	  
+       public Student(int id, String name, String email) {
+		this.id = id;
+		this.name = name;
+		this.email = email;
+	   }
+
+	   public Student(String name, String email) {
+		super();
+		this.name = name;
+		this.email = email;
+	   }
+
+	   public int getId() {
+		   return id;
+	   }
+
+	   public void setId(int id) {
+		   this.id = id;
+	   }
+
+	   public String getName() {
+		   return name;
+	   }
+
+	   public void setName(String name) {
+		   this.name = name;
+	   }
+
+	   public String getEmail() {
+		   return email;
+	   }
+
+	   public void setEmail(String email) {
+		   this.email = email;
+	   }
+       
+       
+}
+
+
+
+DBConnection 
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+
+public class DBConnect {
+
+    private static Connection con = null;
+
+    public static Connection getConnection() {
+
+        try {
+            if (con == null) {
+
+                // Load MySQL Driver
+                Class.forName("com.mysql.cj.jdbc.Driver");
+
+                // Create Connection
+                con = DriverManager.getConnection(
+                        "jdbc:mysql://localhost:3306/studentdbb",
+                        "root",
+                        "root"   // change if your password is different
+                );
+
+                System.out.println("Database Connected Successfully");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return con;
+    }
+}
+
+
+Dao----> StudentDao.java
+
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.technolearn.db.DBConnect;
+import com.technolearn.model.Student;
+
+public class StudentDAO {
+
+    Connection conn = DBConnect.getConnection();
+
+    public boolean saveStudent(Student s) {
+        boolean f = false;
+        try {
+            String sql = "INSERT INTO student(name,email) VALUES(?,?)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, s.getName());
+            ps.setString(2, s.getEmail());
+            ps.executeUpdate();
+            f = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return f;
+    }
+
+    public List<Student> getAllStudent() {
+        List<Student> list = new ArrayList<>();
+        try {
+            String sql = "SELECT * FROM student";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Student s = new Student();
+                s.setId(rs.getInt("id"));
+                s.setName(rs.getString("name"));
+                s.setEmail(rs.getString("email"));
+                list.add(s);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public Student getStudentByID(int id) {
+        Student s = null;
+        try {
+            String sql = "SELECT * FROM student WHERE id=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
+
+            if (rs.next()) {
+                s = new Student();
+                s.setId(rs.getInt("id"));
+                s.setName(rs.getString("name"));
+                s.setEmail(rs.getString("email"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return s;
+    }
+
+    public boolean updateStudent(Student s) {
+        boolean f = false;
+        try {
+            String sql = "UPDATE student SET name=?,email=? WHERE id=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, s.getName());
+            ps.setString(2, s.getEmail());
+            ps.setInt(3, s.getId());
+            ps.executeUpdate();
+            f = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return f;
+    }
+
+    public boolean deleteStudent(int id) {
+        boolean f = false;
+        try {
+            String sql = "DELETE FROM student WHERE id=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, id);
+            ps.executeUpdate();
+            f = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return f;
+    }
+}
+
+
+Servlet----->
+
+AddStudentServlet.java
+
+import java.io.IOException;
+
+import com.technolearn.dao.StudentDAO;
+import com.technolearn.db.DBConnect;
+import com.technolearn.model.Student;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+@WebServlet("/add-student")
+public class AddStudentServlet extends HttpServlet {
+
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException, ServletException {
+
+        String name = req.getParameter("name");
+        String email = req.getParameter("email");
+
+        Student s = new Student(name, email);
+
+        StudentDAO dao = new StudentDAO();
+
+        if (dao.saveStudent(s)) {
+            resp.sendRedirect("list");
+        } else {
+            resp.sendRedirect("index.jsp");
+        }
+    }
+}
+
+
+DeleteStudentServlet.java
+
+
+import java.io.IOException;
+
+import com.technolearn.dao.StudentDAO;
+import com.technolearn.db.DBConnect;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+@WebServlet("/delete")
+public class DeleteStudentServlet extends HttpServlet {
+
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException, ServletException {
+
+        System.out.println("Delete Servlet");
+
+        int id = Integer.parseInt(req.getParameter("id"));
+
+        System.out.println("id is " + id);
+
+        StudentDAO dao = new StudentDAO();
+        dao.deleteStudent(id);
+
+        resp.sendRedirect("list");
+    }
+}
+
+
+UpdateStudentServlet.java
+
+import java.io.IOException;
+
+import com.technolearn.dao.StudentDAO;
+import com.technolearn.db.DBConnect;
+import com.technolearn.model.Student;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+@WebServlet("/update")
+public class UpdateStudentServlet extends HttpServlet {
+
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException, ServletException {
+
+        int id = Integer.parseInt(req.getParameter("id"));
+        String name = req.getParameter("name");
+        String email = req.getParameter("email");
+
+        Student s = new Student(id, name, email);
+
+        StudentDAO dao = new StudentDAO();
+        boolean update = dao.updateStudent(s);
+
+        if (update) {
+            resp.sendRedirect("list");
+        } else {
+            resp.getWriter().print("Update Failed");
+        }
+    }
+}
+
+
+EditStudentServlet.java
+
+import java.io.IOException;
+
+import com.technolearn.dao.StudentDAO;
+import com.technolearn.db.DBConnect;
+import com.technolearn.model.Student;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+@WebServlet("/edit")
+public class EditStudentServlet extends HttpServlet {
+
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException, ServletException {
+
+        String ids = req.getParameter("id");
+
+        if (ids == null && ids.trim().equals("")) {
+            resp.getWriter().print("Id is missing");
+            return;
+        }
+
+        int id = Integer.parseInt(ids);
+
+        StudentDAO dao = new StudentDAO();
+        Student s = dao.getStudentByID(id);
+
+        req.setAttribute("student", s);
+
+        req.getRequestDispatcher("edit_student.jsp").forward(req, resp);
+    }
+}
+
+StudentListServlet.java
+
+
+import java.io.IOException;
+import java.util.List;
+
+import com.technolearn.dao.StudentDAO;
+import com.technolearn.db.DBConnect;
+import com.technolearn.model.Student;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+@WebServlet("/list")	
+public class StudentListServlet extends  HttpServlet{
+
+	protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+			throws IOException,ServletException{
+		StudentDAO dao = new StudentDAO();
+		List<Student> student =dao.getAllStudent();
+		req.setAttribute("student", student);
+		req.getRequestDispatcher("student_list.jsp").forward(req, resp);
+	}
+	
+}
+---------------------------------------------------------------------------
+
+Webapp 
+
+edit_student.jsp
+
+<html>
+<body>
+    <h2><%= "Update Student Name and Email" %></h2>
+
+```
+<a href="list">show all students</a>
+
+<form action="update" method="post">
+    <input type="hidden" name="id" value="${student.id }">
+
+    <input type="text" name="name" value="${student.name }">
+    <br><br>
+
+    <input type="text" name="email" value="${student.email }">
+    <br><br>
+
+    <button type="submit">Update</button>
+</form>
+```
+
+</body>
+</html>
+
+
+student_list.jsp
+
+
+<%@ page import="com.technolearn.model.Student" %>
+<%@ page import="java.util.List" %>
+
+<html>
+<body>
+
+<h2>Student List</h2>
+
+<hr>
+<br>
+
+<table border="1">
+<tr>
+    <th>Name</th>
+    <th>Email</th>
+    <th>Delete</th>
+    <th>Update</th>
+</tr>
+
+<%
+List<Student> list = (List<Student>) request.getAttribute("student");
+
+if (list != null && !list.isEmpty()) {
+    for (Student s : list) {
+
+%>
+
+<tr>
+    <td><%= s.getName() %></td>
+    <td><%= s.getEmail() %></td>
+
+<td>
+    <a href="delete?id=<%= s.getId() %>" style="color: red">Delete</a>
+</td>
+
+<td>
+    <a href="edit?id=<%= s.getId() %>" style="color: blue">Update</a>
+</td>
+```
+
+</tr>
+
+<%
+}
+} else {
+%>
+
+<tr>
+    <td>No Student Found</td>
+    <td>No email Found</td>
+</tr>
+
+<%
+}
+%>
+
+</table>
+
+</body>
+</html>
+
+
+
+index.jsp
+
+<html>
+<body>
+    <h2><%= "Hello World!" %></h2>
+
+```
+<a href="list">show all students</a>
+
+<form action="add-student" method="post">
+    <input type="text" name="name" placeholder="enter your name">
+    <br><br>
+
+    <input type="text" name="email" placeholder="enter your email">
+    <br><br>
+
+    <button type="submit">Save</button>
+</form>
+```
+
+</body>
+</html>
+
+

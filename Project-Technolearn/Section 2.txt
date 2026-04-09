@@ -1,0 +1,27 @@
+
+Section 2 
+
+Q1: Write a function to find the first non-repeating character in a string.
+
+  
+function firstNonRepeatingChar(str) {
+
+    for (let i = 0; i < str.length; i++) {
+
+        if (str.indexOf(str[i]) === str.lastIndexOf(str[i])) {
+            return str[i];
+        }
+    } 
+    return null;
+}
+
+let input = "abbcde";
+
+let result = firstNonRepeatingChar(input);
+
+
+if (result !== null) {
+    console.log("First non-repeating character is:", result);
+} else {
+    console.log("No non-repeating character found");
+}
